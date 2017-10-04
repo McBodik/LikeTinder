@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">LikeTinder</string>
+    <string name="error_message">"Oops. Something went wrong. Call to Fixies!"</string>
 </resources>
