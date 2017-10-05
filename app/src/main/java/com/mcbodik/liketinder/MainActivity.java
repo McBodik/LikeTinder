@@ -1,17 +1,20 @@
 package com.mcbodik.liketinder;
 
+import android.animation.ObjectAnimator;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.support.v7.app.AppCompatActivity;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.mcbodik.liketinder.loader.ImageSetLoader;
-import com.mcbodik.liketinder.loader.model.ImageSetCallbackModel;
 import com.mcbodik.liketinder.loader.model.ImageModel;
+import com.mcbodik.liketinder.loader.model.ImageSetCallbackModel;
+import com.mcbodik.liketinder.utils.SwipeListener;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,7 +30,7 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ISwipeCallback {
 
 	private Retrofit retrofit;
 	private long photoSetId = 72157686914148170L;
@@ -39,6 +42,8 @@ public class MainActivity extends AppCompatActivity {
 
 	private ArrayList<ImageModel> images;
 
+	private ImageView mImageView;
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -48,6 +53,24 @@ public class MainActivity extends AppCompatActivity {
 				.baseUrl("https://api.flickr.com/")
 				.addConverterFactory(GsonConverterFactory.create())
 				.build();
+		mImageView = findViewById(R.id.main_image);
+
+		mImageView.setOnTouchListener(new View.OnTouchListener() {
+			SwipeListener swipeListener = new SwipeListener(MainActivity.this);
+
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				return swipeListener.handleEvent(event);
+			}
+		});
+
+		mImageView.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+
+			}
+		});
+
 		ImageSetLoader imageSetLoader = retrofit.create(ImageSetLoader.class);
 		imageSetLoader.getImageSet(apiKey, String.valueOf(photoSetId), userId).enqueue(new Callback<ImageSetCallbackModel>() {
 			@Override
@@ -73,24 +96,47 @@ public class MainActivity extends AppCompatActivity {
 		});
 	}
 
+	@Override
+	public void onLeftSwipe(float x, float y) {
+		ObjectAnimator.ofFloat(mImageView, View.X, -x).start();
+		ObjectAnimator.ofFloat(mImageView, View.Y, -y).start();
+	}
+
+	@Override
+	public void onRightSwipe(float x, float y) {
+		ObjectAnimator.ofFloat(mImageView, View.X, x).start();
+		ObjectAnimator.ofFloat(mImageView, View.Y, y).start();
+	}
+
+	@Override
+	public void onTopSwipe(float x, float y) {
+		ObjectAnimator.ofFloat(mImageView, View.X, -x).start();
+		ObjectAnimator.ofFloat(mImageView, View.Y, -y).start();
+	}
+
+	@Override
+	public void onDownSwipe(float x, float y) {
+		ObjectAnimator.ofFloat(mImageView, View.X, x).start();
+		ObjectAnimator.ofFloat(mImageView, View.Y, y).start();
+	}
+
 	private class ImageLoader extends AsyncTask<Void, Void, Bitmap> {
 		private ImageModel mImageModel;
 		private String mImageURL;
 
 		public ImageLoader(ImageModel model) {
-			super();
 			mImageModel = model;
 			mImageURL = prepareUrl();
 		}
 
 		@Override
 		protected void onPreExecute() {
-			super.onPreExecute();
+
 		}
 
 		@Override
 		protected void onProgressUpdate(Void... values) {
-			super.onProgressUpdate(values);
+
 		}
 
 		@Override
@@ -111,8 +157,9 @@ public class MainActivity extends AppCompatActivity {
 		protected void onPostExecute(Bitmap bitmap) {
 			if (bitmap == null) {
 				Toast.makeText(MainActivity.this, getString(R.string.error_message), Toast.LENGTH_SHORT).show();
+			} else {
+				mImageView.setImageBitmap(bitmap);
 			}
-			super.onPostExecute(bitmap);
 		}
 
 		private String prepareUrl() {
