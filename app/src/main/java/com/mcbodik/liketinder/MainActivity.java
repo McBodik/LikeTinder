@@ -13,6 +13,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 
+import com.mcbodik.liketinder.utils.AnimationHelper;
 import com.mcbodik.liketinder.utils.ImageProvider;
 import com.mcbodik.liketinder.utils.SwipeListener;
 
@@ -47,66 +48,48 @@ public class MainActivity extends AppCompatActivity implements ISwipeCallback {
 	@Override
 	protected void onStart() {
 		super.onStart();
+		setImage();
+	}
+
+	@Override
+	public void onLeftSwipe(float x, float y) {
+		animate(x, y);
+	}
+
+	@Override
+	public void onRightSwipe(float x, float y) {
+		animate(x, y);
+	}
+
+	@Override
+	public void onTopSwipe(float x, float y) {
+		animate(x, y);
+	}
+
+	@Override
+	public void onDownSwipe(float x, float y) {
+		animate(x, y);
+	}
+
+	private void setImage() {
+		mProgressBar.setVisibility(View.VISIBLE);
+		mImageView.setImageBitmap(null);
 		mImageProvider.getNext(new ImageProvider.ImageObtainCallback() {
 			@Override
 			public void onObtain(Bitmap image) {
+				mProgressBar.setVisibility(View.GONE);
 				mImageView.setImageBitmap(image);
 			}
 		});
 	}
 
-	@Override
-	public void onLeftSwipe(final float x, final float y) {
-		ObjectAnimator objectAnimatorX = ObjectAnimator.ofFloat(mImageView, View.X, x);
-		ObjectAnimator objectAnimatorY = ObjectAnimator.ofFloat(mImageView, View.Y, y);
-		objectAnimatorX.addListener(new AnimatorListenerAdapter() {
+	private void animate(float x, float y) {
+		AnimationHelper animationHelper = new AnimationHelper();
+		animationHelper.animateView(mImageView, x, y, 0, -1, new AnimationHelper.AnimationFinish() {
 			@Override
-			public void onAnimationEnd(final Animator animation) {
-				animation.removeListener(this);
-				mImageView.post(new Runnable() {
-					@Override
-					public void run() {
-						animation.setDuration(0);
-						((ObjectAnimator) animation).reverse();
-					}
-				});
-
+			public void onFinish() {
+				setImage();
 			}
 		});
-
-		objectAnimatorY.addListener(new AnimatorListenerAdapter() {
-			@Override
-			public void onAnimationEnd(final Animator animation) {
-				animation.removeListener(this);
-				mImageView.post(new Runnable() {
-					@Override
-					public void run() {
-						animation.setDuration(0);
-						((ObjectAnimator) animation).reverse();
-					}
-				});
-
-			}
-		});
-		objectAnimatorX.start();
-		objectAnimatorY.start();
-	}
-
-	@Override
-	public void onRightSwipe(float x, float y) {
-		ObjectAnimator.ofFloat(mImageView, View.X, x).start();
-		ObjectAnimator.ofFloat(mImageView, View.Y, y).start();
-	}
-
-	@Override
-	public void onTopSwipe(float x, float y) {
-		ObjectAnimator.ofFloat(mImageView, View.X, x).start();
-		ObjectAnimator.ofFloat(mImageView, View.Y, y).start();
-	}
-
-	@Override
-	public void onDownSwipe(float x, float y) {
-		ObjectAnimator.ofFloat(mImageView, View.X, x).start();
-		ObjectAnimator.ofFloat(mImageView, View.Y, y).start();
 	}
 }
