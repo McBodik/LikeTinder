@@ -32,7 +32,7 @@ public class SwipeListener {
 		public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
 			ISwipeCallback callback = null;
 			if (mContext instanceof ISwipeCallback) {
-				callback = (ISwipeCallback) mContext; 
+				callback = (ISwipeCallback) mContext;
 			}
 			if (e1.getX() - e2.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
 				if (callback != null) {
