@@ -45,17 +45,6 @@ public class SwipeListener {
 				}
 				return false; //->
 			}
-			if (e1.getY() - e2.getY() > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
-				if (callback != null) {
-					callback.onTopSwipe(velocityX, velocityY);
-				}
-				return false; //up
-			} else if (e2.getY() - e1.getY() > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
-				if (callback != null) {
-					callback.onDownSwipe(velocityX, velocityY);
-				}
-				return false; //down
-			}
 			return false;
 		}
 

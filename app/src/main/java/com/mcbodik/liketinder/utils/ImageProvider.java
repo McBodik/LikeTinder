@@ -30,12 +30,13 @@ public class ImageProvider {
 	private ArrayList<ImageModel> mImages;
 	private Retrofit retrofit;
 	private Bitmap mMainImage;
+	private String mMainImageId;
 	private Bitmap mCachedImage;
+	private String mCachedImageId;
 
 	private Context mContext;
 	private ImageObtainCallback mCallback;
 
-	private boolean mImageSetLoaded = false;
 	private int mLoadedImageIndex = -1;
 
 	private long photoSetId = 72157686914148170L;
@@ -44,6 +45,7 @@ public class ImageProvider {
 
 	public int ERROR_NO_ERRORS = 0;
 	public int ERROR_NO_IMAGES = 1;
+	public int ERROR_NO_IMAGE_YET = 2;
 	private int mErrorCode = ERROR_NO_ERRORS;
 
 	//https://farm{farm-id}.staticflickr.com/{server-id}/{id}_{secret}.jpg
@@ -56,27 +58,31 @@ public class ImageProvider {
 				.addConverterFactory(GsonConverterFactory.create())
 				.build();
 		mImages = new ArrayList<>();
-		loadImageSet();
+		loadImageSet(false);
 	}
 
 	public boolean getNext(ImageObtainCallback callback) {
-		if (!mImageSetLoaded) {
-			mCallback = callback;
-		} else {
-			if (mImages.size() == 0) {
-				mErrorCode = ERROR_NO_IMAGES;
-				return false;
-			}
+		if (mCallback != null) {
+			mErrorCode = ERROR_NO_IMAGE_YET;
+			return false;
+		}
+		mCallback = callback;
+		if (mImages.size() == 0) {
+			mErrorCode = ERROR_NO_IMAGES;
+			return false;
 		}
 		if (mMainImage != null) {
-			Bitmap result = mMainImage;
+			Bitmap bitmap = mMainImage;
+			String id = mMainImageId;
 			mMainImage = mCachedImage;
+			mMainImageId = mCachedImageId;
+			mCachedImage = null;
+			mCachedImageId = null;
+			mCallback = null;
 			if (!loadNext(true)) {
-				loadFirst(true);
+				loadImageSet(true);
 			}
-			callback.onObtain(result);
-		} else {
-			mCallback = callback;
+			callback.onObtain(id, bitmap);
 		}
 		return true;
 	}
@@ -85,7 +91,7 @@ public class ImageProvider {
 		return mErrorCode;
 	}
 
-	private void loadImageSet() {
+	private void loadImageSet(final boolean reload) {
 		ImageSetLoader imageSetLoader = retrofit.create(ImageSetLoader.class);
 		imageSetLoader.getImageSet(apiKey, String.valueOf(photoSetId), userId).enqueue(new Callback<ImageSetCallbackModel>() {
 			@Override
@@ -100,9 +106,7 @@ public class ImageProvider {
 							return -imageModel.getDateupload().compareTo(t1.getDateupload());
 						}
 					});
-					mImageSetLoaded = true;
-					loadFirst(false);
-					loadNext(true);
+					loadFirst(reload);
 				}
 			}
 
@@ -118,6 +122,11 @@ public class ImageProvider {
 		if (mImages.size() > 0) {
 			new ImageLoader(mImages.get(mLoadedImageIndex), loadToCache).execute();
 			return true;
+		} else {
+			if (mCallback != null) {
+				mCallback.onObtain(null, null);
+				Toast.makeText(mContext, mContext.getString(R.string.error_message_no_images), Toast.LENGTH_SHORT).show();
+			}
 		}
 		return false;
 	}
@@ -134,7 +143,7 @@ public class ImageProvider {
 	}
 
 	public interface ImageObtainCallback {
-		void onObtain(Bitmap image);
+		void onObtain(String id, Bitmap image);
 	}
 
 	private class ImageLoader extends AsyncTask<Void, Void, Bitmap> {
@@ -146,16 +155,6 @@ public class ImageProvider {
 			mImageModel = model;
 			mImageURL = prepareUrl();
 			mCache = cache;
-		}
-
-		@Override
-		protected void onPreExecute() {
-
-		}
-
-		@Override
-		protected void onProgressUpdate(Void... values) {
-
 		}
 
 		@Override
@@ -177,16 +176,21 @@ public class ImageProvider {
 			if (bitmap == null) {
 				Toast.makeText(mContext, mContext.getString(R.string.error_message), Toast.LENGTH_SHORT).show();
 			} else {
-				if (!mCache) {
+				if (!mCache || mMainImage == null) {
 					mMainImage = bitmap;
+					mMainImageId = mImageModel.getId();
 					if (mCallback != null) {
-						mCallback.onObtain(bitmap);
+						mCallback.onObtain(mMainImageId, bitmap);
 						mMainImage = null;
-						loadNext(false);
+						mMainImageId = null;
 						mCallback = null;
+						loadNext(false);
+					} else {
+						loadNext(true);
 					}
 				} else {
 					mCachedImage = bitmap;
+					mCachedImageId = mImageModel.getId();
 				}
 			}
 		}

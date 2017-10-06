@@ -1,8 +1,6 @@
 package com.mcbodik.liketinder;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.ObjectAnimator;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
@@ -12,6 +10,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import com.mcbodik.liketinder.utils.AnimationHelper;
 import com.mcbodik.liketinder.utils.ImageProvider;
@@ -20,8 +19,15 @@ import com.mcbodik.liketinder.utils.SwipeListener;
 public class MainActivity extends AppCompatActivity implements ISwipeCallback {
 
 	private ImageView mImageView;
+	private TextView mLikesField;
+	private TextView mDislikesField;
 	private ProgressBar mProgressBar;
 	private ImageProvider mImageProvider;
+	private SharedPreferences mSharedPreferences;
+	private String mImageId;
+
+	private static final String LIKE = "_LIKE";
+	private static final String DISLIKE = "_DISLIKE";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -43,44 +49,58 @@ public class MainActivity extends AppCompatActivity implements ISwipeCallback {
 				return swipeListener.handleEvent(event);
 			}
 		});
-	}
-
-	@Override
-	protected void onStart() {
-		super.onStart();
-		setImage();
+		mLikesField = findViewById(R.id.like);
+		mDislikesField = findViewById(R.id.dislike);
+		mSharedPreferences = getPreferences(MODE_PRIVATE);
+		updateImageData();
 	}
 
 	@Override
 	public void onLeftSwipe(float x, float y) {
 		animate(x, y);
+		updateLikes(false);
 	}
 
 	@Override
 	public void onRightSwipe(float x, float y) {
 		animate(x, y);
+		updateLikes(true);
 	}
 
-	@Override
-	public void onTopSwipe(float x, float y) {
-		animate(x, y);
-	}
-
-	@Override
-	public void onDownSwipe(float x, float y) {
-		animate(x, y);
-	}
-
-	private void setImage() {
+	private void updateImageData() {
 		mProgressBar.setVisibility(View.VISIBLE);
 		mImageView.setImageBitmap(null);
+		mLikesField.setText("");
+		mDislikesField.setText("");
+		mImageId = null;
 		mImageProvider.getNext(new ImageProvider.ImageObtainCallback() {
 			@Override
-			public void onObtain(Bitmap image) {
+			public void onObtain(String id, Bitmap image) {
+				if (id == null && image == null) {
+					mProgressBar.setVisibility(View.GONE);
+					return;
+				}
+				mImageId = id;
 				mProgressBar.setVisibility(View.GONE);
 				mImageView.setImageBitmap(image);
+				mLikesField.setText(String.valueOf(mSharedPreferences.getInt(mImageId + LIKE, 0)));
+				mDislikesField.setText(String.valueOf(mSharedPreferences.getInt(mImageId + DISLIKE, 0)));
 			}
 		});
+	}
+
+	private void updateLikes(boolean like) {
+		int count;
+		String id;
+		if (like) {
+			id = mImageId + LIKE;
+			count = mSharedPreferences.getInt(id, 0);
+			mSharedPreferences.edit().putInt(id, count + 1).commit();
+		} else {
+			id = mImageId + DISLIKE;
+			count = mSharedPreferences.getInt(id, 0);
+			mSharedPreferences.edit().putInt(id, count + 1).commit();
+		}
 	}
 
 	private void animate(float x, float y) {
@@ -88,7 +108,7 @@ public class MainActivity extends AppCompatActivity implements ISwipeCallback {
 		animationHelper.animateView(mImageView, x, y, 0, -1, new AnimationHelper.AnimationFinish() {
 			@Override
 			public void onFinish() {
-				setImage();
+				updateImageData();
 			}
 		});
 	}
