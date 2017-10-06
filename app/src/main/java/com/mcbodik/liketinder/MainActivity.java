@@ -1,14 +1,19 @@
 package com.mcbodik.liketinder;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.mcbodik.liketinder.loader.ImageSetLoader;
@@ -43,6 +48,10 @@ public class MainActivity extends AppCompatActivity implements ISwipeCallback {
 	private ArrayList<ImageModel> images;
 
 	private ImageView mImageView;
+	ProgressBar mProgressBar;
+	private Bitmap mTempBitmap;
+	private int mImageIndex;
+
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -53,6 +62,9 @@ public class MainActivity extends AppCompatActivity implements ISwipeCallback {
 				.baseUrl("https://api.flickr.com/")
 				.addConverterFactory(GsonConverterFactory.create())
 				.build();
+		mProgressBar = findViewById(R.id.progress);
+		mProgressBar.setIndeterminate(true);
+		DrawableCompat.setTint(mProgressBar.getIndeterminateDrawable(), ContextCompat.getColor(this, android.R.color.holo_blue_dark));
 		mImageView = findViewById(R.id.main_image);
 
 		mImageView.setOnTouchListener(new View.OnTouchListener() {
@@ -85,7 +97,8 @@ public class MainActivity extends AppCompatActivity implements ISwipeCallback {
 							return -imageModel.getDateupload().compareTo(t1.getDateupload());
 						}
 					});
-					new ImageLoader(images.get(0)).execute();
+					mImageIndex = 0;
+					loadNext();
 				}
 			}
 
@@ -97,9 +110,43 @@ public class MainActivity extends AppCompatActivity implements ISwipeCallback {
 	}
 
 	@Override
-	public void onLeftSwipe(float x, float y) {
-		ObjectAnimator.ofFloat(mImageView, View.X, -x).start();
-		ObjectAnimator.ofFloat(mImageView, View.Y, -y).start();
+	public void onLeftSwipe(final float x, final float y) {
+		ObjectAnimator objectAnimatorX = ObjectAnimator.ofFloat(mImageView, View.X, x);
+		ObjectAnimator objectAnimatorY = ObjectAnimator.ofFloat(mImageView, View.Y, y);
+		objectAnimatorX.addListener(new AnimatorListenerAdapter() {
+			@Override
+			public void onAnimationEnd(final Animator animation) {
+				animation.removeListener(this);
+				mImageView.post(new Runnable() {
+					@Override
+					public void run() {
+						mImageView.setImageBitmap(mTempBitmap);
+						animation.setDuration(0);
+						((ObjectAnimator) animation).reverse();
+					}
+				});
+
+			}
+		});
+
+		objectAnimatorY.addListener(new AnimatorListenerAdapter() {
+			@Override
+			public void onAnimationEnd(final Animator animation) {
+				animation.removeListener(this);
+				mImageView.post(new Runnable() {
+					@Override
+					public void run() {
+						mImageView.setImageBitmap(mTempBitmap);
+						animation.setDuration(0);
+						((ObjectAnimator) animation).reverse();
+						loadNext();
+					}
+				});
+
+			}
+		});
+		objectAnimatorX.start();
+		objectAnimatorY.start();
 	}
 
 	@Override
@@ -110,8 +157,8 @@ public class MainActivity extends AppCompatActivity implements ISwipeCallback {
 
 	@Override
 	public void onTopSwipe(float x, float y) {
-		ObjectAnimator.ofFloat(mImageView, View.X, -x).start();
-		ObjectAnimator.ofFloat(mImageView, View.Y, -y).start();
+		ObjectAnimator.ofFloat(mImageView, View.X, x).start();
+		ObjectAnimator.ofFloat(mImageView, View.Y, y).start();
 	}
 
 	@Override
@@ -120,13 +167,29 @@ public class MainActivity extends AppCompatActivity implements ISwipeCallback {
 		ObjectAnimator.ofFloat(mImageView, View.Y, y).start();
 	}
 
+	private void loadNext() {
+		if (mImageIndex == 0) {
+			mProgressBar.setVisibility(View.VISIBLE);
+			new ImageLoader(images.get(mImageIndex), true).execute();
+		}
+		mImageIndex++;
+		if (mImageIndex < images.size()) {
+			new ImageLoader(images.get(mImageIndex), false).execute();
+		} else {
+			mImageIndex = 0;
+			mTempBitmap = null;
+		}
+	}
+
 	private class ImageLoader extends AsyncTask<Void, Void, Bitmap> {
 		private ImageModel mImageModel;
 		private String mImageURL;
+		private boolean mAttach;
 
-		public ImageLoader(ImageModel model) {
+		public ImageLoader(ImageModel model, boolean attachToView) {
 			mImageModel = model;
 			mImageURL = prepareUrl();
+			mAttach = attachToView;
 		}
 
 		@Override
@@ -158,7 +221,12 @@ public class MainActivity extends AppCompatActivity implements ISwipeCallback {
 			if (bitmap == null) {
 				Toast.makeText(MainActivity.this, getString(R.string.error_message), Toast.LENGTH_SHORT).show();
 			} else {
-				mImageView.setImageBitmap(bitmap);
+				if (mAttach) {
+					mImageView.setImageBitmap(bitmap);
+					mProgressBar.setVisibility(View.GONE);
+				} else {
+					mTempBitmap = bitmap;
+				}
 			}
 		}
 
