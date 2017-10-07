@@ -3,7 +3,6 @@ package com.mcbodik.liketinder.utils;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
-import android.util.Property;
 import android.view.View;
 
 public class AnimationHelper {

@@ -3,7 +3,7 @@ package com.mcbodik.liketinder.loader.model;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
-public class ImageSetCallbackModel {
+public class CallbackModel {
 	@SerializedName("photoset")
 	@Expose
 	private ImageSetModel photoset;

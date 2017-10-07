@@ -9,7 +9,7 @@ import android.widget.Toast;
 import com.mcbodik.liketinder.R;
 import com.mcbodik.liketinder.loader.ImageSetLoader;
 import com.mcbodik.liketinder.loader.model.ImageModel;
-import com.mcbodik.liketinder.loader.model.ImageSetCallbackModel;
+import com.mcbodik.liketinder.loader.model.CallbackModel;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -93,12 +93,12 @@ public class ImageProvider {
 
 	private void loadImageSet(final boolean reload) {
 		ImageSetLoader imageSetLoader = retrofit.create(ImageSetLoader.class);
-		imageSetLoader.getImageSet(apiKey, String.valueOf(photoSetId), userId).enqueue(new Callback<ImageSetCallbackModel>() {
+		imageSetLoader.getImageSet(apiKey, String.valueOf(photoSetId), userId).enqueue(new Callback<CallbackModel>() {
 			@Override
-			public void onResponse(Call<ImageSetCallbackModel> call, Response<ImageSetCallbackModel> response) {
+			public void onResponse(Call<CallbackModel> call, Response<CallbackModel> response) {
 				synchronized (mImages) {
 					mImages.clear();
-					ImageSetCallbackModel callbackModel = response.body();
+					CallbackModel callbackModel = response.body();
 					mImages.addAll(callbackModel.getPhotoset().getPhoto());
 					Collections.sort(mImages, new Comparator<ImageModel>() {
 						@Override
@@ -111,7 +111,7 @@ public class ImageProvider {
 			}
 
 			@Override
-			public void onFailure(Call<ImageSetCallbackModel> call, Throwable t) {
+			public void onFailure(Call<CallbackModel> call, Throwable t) {
 				Toast.makeText(mContext, mContext.getString(R.string.error_message), Toast.LENGTH_SHORT).show();
 			}
 		});
@@ -164,8 +164,7 @@ public class ImageProvider {
 				HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 				connection.connect();
 				InputStream input = connection.getInputStream();
-				Bitmap result = BitmapFactory.decodeStream(input);
-				return result;
+				return BitmapFactory.decodeStream(input);
 			} catch (IOException e) {
 				return null;
 			}
