@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity implements ISwipeCallback {
 
 		mProgressBar = findViewById(R.id.progress);
 		mProgressBar.setIndeterminate(true);
-		DrawableCompat.setTint(mProgressBar.getIndeterminateDrawable(), ContextCompat.getColor(this, android.R.color.holo_blue_dark));
+		DrawableCompat.setTint(mProgressBar.getIndeterminateDrawable(), ContextCompat.getColor(this, R.color.colorAccent));
 
 		mImageView = findViewById(R.id.main_image);
 		mImageView.setOnTouchListener(new View.OnTouchListener() {
@@ -95,11 +95,11 @@ public class MainActivity extends AppCompatActivity implements ISwipeCallback {
 		if (like) {
 			id = mImageId + LIKE;
 			count = mSharedPreferences.getInt(id, 0);
-			mSharedPreferences.edit().putInt(id, count + 1).commit();
+			mSharedPreferences.edit().putInt(id, count + 1).apply();
 		} else {
 			id = mImageId + DISLIKE;
 			count = mSharedPreferences.getInt(id, 0);
-			mSharedPreferences.edit().putInt(id, count + 1).commit();
+			mSharedPreferences.edit().putInt(id, count + 1).apply();
 		}
 	}
 
